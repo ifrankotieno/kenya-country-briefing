@@ -1,0 +1,559 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Kenya Insights Dashboard | Country KPIs</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --black: #000000;
+    --red: #BB0000;
+    --green: #006600;
+    --white: #FFFFFF;
+    --gold: #C9A227;
+    --bg: #f8f9fa;
+    --card: #ffffff;
+    --text: #1a1a1a;
+    --muted: #666;
+    --shadow: 0 4px 20px rgba(0,0,0,0.08);
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: 'Inter', system-ui, sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    line-height: 1.5;
+  }
+  header {
+    background: linear-gradient(135deg, #000 0%, #1a1a1a 50%, #BB0000 100%);
+    color: white;
+    padding: 2.5rem 1.5rem 1.75rem;
+    text-align: center;
+    position: relative;
+    overflow: hidden;
+  }
+  header h1 { font-size: 2.4rem; font-weight: 700; margin-bottom: 0.5rem; position: relative; }
+  header p { font-size: 1.1rem; opacity: 0.9; max-width: 760px; margin: 0 auto; position: relative; }
+  .flag-bar {
+    height: 8px;
+    background: linear-gradient(to right, #000 33%, #BB0000 33%, #BB0000 66%, #006600 66%);
+  }
+  .section-nav {
+    display: flex;
+    gap: 0.5rem;
+    justify-content: center;
+    flex-wrap: wrap;
+    margin-top: 1.25rem;
+    position: relative;
+  }
+  .section-nav a {
+    color: white;
+    text-decoration: none;
+    border: 1px solid rgba(255,255,255,0.35);
+    border-radius: 999px;
+    padding: 0.45rem 0.9rem;
+    font-size: 0.85rem;
+    font-weight: 500;
+  }
+  .section-nav a:hover { background: rgba(255,255,255,0.12); }
+  .container { max-width: 1400px; margin: 0 auto; padding: 2rem 1.5rem; }
+  .kpi-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    gap: 1.25rem;
+    margin-bottom: 2.5rem;
+  }
+  .kpi-card {
+    background: var(--card);
+    border-radius: 16px;
+    padding: 1.5rem;
+    box-shadow: var(--shadow);
+    border-top: 4px solid var(--green);
+    transition: transform 0.2s, box-shadow 0.2s;
+    cursor: pointer;
+  }
+  .kpi-card:hover { transform: translateY(-4px); box-shadow: 0 8px 30px rgba(0,0,0,0.12); }
+  .kpi-card.red { border-top-color: var(--red); }
+  .kpi-card.black { border-top-color: var(--black); }
+  .kpi-card.gold { border-top-color: var(--gold); }
+  .kpi-label { font-size: 0.85rem; color: var(--muted); font-weight: 500; text-transform: uppercase; letter-spacing: 0.5px; }
+  .kpi-value { font-size: 1.8rem; font-weight: 700; margin: 0.4rem 0; }
+  .kpi-sub { font-size: 0.85rem; color: var(--muted); }
+  .kpi-trend { font-size: 0.8rem; margin-top: 0.5rem; font-weight: 500; }
+  .trend-up { color: #16a34a; }
+  .trend-down { color: #dc2626; }
+  .section {
+    background: var(--card);
+    border-radius: 16px;
+    padding: 1.75rem;
+    margin-bottom: 1.75rem;
+    box-shadow: var(--shadow);
+  }
+  .section-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 1.25rem;
+    flex-wrap: wrap;
+    gap: 1rem;
+  }
+  .section h2 { font-size: 1.35rem; font-weight: 600; }
+  .question { color: var(--muted); max-width: 640px; margin-top: 0.25rem; }
+  .tabs {
+    display: flex;
+    gap: 0.5rem;
+    background: #f1f5f9;
+    padding: 0.3rem;
+    border-radius: 10px;
+    flex-wrap: wrap;
+  }
+  .tab {
+    padding: 0.5rem 1rem;
+    border-radius: 8px;
+    font-size: 0.85rem;
+    font-weight: 500;
+    cursor: pointer;
+    border: none;
+    background: transparent;
+    color: var(--muted);
+    font-family: inherit;
+  }
+  .tab.active { background: white; color: var(--text); box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
+  .drill {
+    margin-top: 1rem;
+    background: #f1f5f9;
+    padding: 0.6rem 1.2rem;
+    border-radius: 8px;
+    border: none;
+    cursor: pointer;
+    font-family: inherit;
+    font-weight: 500;
+  }
+  .chart-container { position: relative; height: 380px; }
+  .chart-container.tall { height: 460px; }
+  .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 1.75rem; }
+  @media (max-width: 900px) { .grid-2 { grid-template-columns: 1fr; } }
+  .detail-panel {
+    display: none;
+    margin-top: 1.5rem;
+    padding: 1.25rem;
+    background: #f8fafc;
+    border-radius: 12px;
+    border-left: 4px solid var(--green);
+  }
+  .detail-panel.active { display: block; }
+  .detail-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 1rem;
+    margin-top: 1rem;
+  }
+  .detail-item {
+    background: white;
+    padding: 1rem;
+    border-radius: 10px;
+    box-shadow: 0 1px 4px rgba(0,0,0,0.05);
+  }
+  .detail-item strong { display: block; font-size: 1.1rem; color: var(--green); }
+  .note { font-size: 0.8rem; color: var(--muted); margin-top: 1rem; font-style: italic; }
+  .callout {
+    background: #fff7ed;
+    border-left: 4px solid var(--gold);
+    border-radius: 12px;
+    padding: 1rem 1.15rem;
+    margin-top: 1.25rem;
+  }
+  .callout h3 { font-size: 1rem; margin-bottom: 0.35rem; }
+  table { width: 100%; border-collapse: collapse; margin-top: 0.75rem; }
+  th, td { text-align: left; padding: 0.7rem 0.4rem; border-bottom: 1px solid #e5e7eb; vertical-align: top; }
+  th { font-size: 0.8rem; text-transform: uppercase; letter-spacing: 0.04em; color: var(--muted); }
+  footer {
+    text-align: center;
+    padding: 2rem;
+    color: var(--muted);
+    font-size: 0.85rem;
+    border-top: 1px solid #e5e7eb;
+    margin-top: 2rem;
+  }
+  .source { color: var(--red); }
+</style>
+</head>
+<body>
+<div class="flag-bar"></div>
+<header>
+  <h1>Kenya Insights Dashboard</h1>
+  <p>High-level country KPIs. Open a section when you want the question behind the number.</p>
+  <nav class="section-nav" aria-label="Sections">
+    <a href="#people">People</a>
+    <a href="#change">Change</a>
+    <a href="#livelihoods">Livelihoods</a>
+    <a href="#learning">Learning</a>
+    <a href="#places">Places</a>
+    <a href="#notes">How to read this</a>
+  </nav>
+</header>
+
+<div class="container">
+  <div class="kpi-grid">
+    <div class="kpi-card" onclick="showSection('people')">
+      <div class="kpi-label">Population</div>
+      <div class="kpi-value">57.5M</div>
+      <div class="kpi-sub">2025 estimate</div>
+      <div class="kpi-trend trend-up">↑ ~1.9% annual growth</div>
+    </div>
+    <div class="kpi-card red" onclick="showSection('people')">
+      <div class="kpi-label">Sex Ratio</div>
+      <div class="kpi-value">98.9</div>
+      <div class="kpi-sub">Males per 100 females</div>
+      <div class="kpi-trend">Near parity · slightly more females</div>
+    </div>
+    <div class="kpi-card" onclick="showSection('change')">
+      <div class="kpi-label">Birth Rate</div>
+      <div class="kpi-value">27.0</div>
+      <div class="kpi-sub">per 1,000 people (UN, 2024)</div>
+      <div class="kpi-trend trend-down">↓ Declining steadily</div>
+    </div>
+    <div class="kpi-card red" onclick="showSection('change')">
+      <div class="kpi-label">Death Rate</div>
+      <div class="kpi-value">7.2</div>
+      <div class="kpi-sub">per 1,000 people (2024)</div>
+      <div class="kpi-trend">Natural increase ~+20/1,000</div>
+    </div>
+    <div class="kpi-card gold" onclick="showSection('learning')">
+      <div class="kpi-label">Adult Literacy</div>
+      <div class="kpi-value">82.9%</div>
+      <div class="kpi-sub">Ages 15+ (2022)</div>
+      <div class="kpi-trend">Primary completion is high</div>
+    </div>
+    <div class="kpi-card" onclick="showSection('livelihoods')">
+      <div class="kpi-label">GDP per Capita</div>
+      <div class="kpi-value">$2,363</div>
+      <div class="kpi-sub">Current US$ (2025)</div>
+      <div class="kpi-trend trend-up">Lower-middle income</div>
+    </div>
+    <div class="kpi-card red" onclick="showSection('livelihoods')">
+      <div class="kpi-label">Poverty Rate</div>
+      <div class="kpi-value">39.8%</div>
+      <div class="kpi-sub">National headcount (2022)</div>
+      <div class="kpi-trend">Much higher with little schooling</div>
+    </div>
+    <div class="kpi-card" onclick="showSection('change')">
+      <div class="kpi-label">Life Expectancy</div>
+      <div class="kpi-value">64.0</div>
+      <div class="kpi-sub">Years at birth (2025)</div>
+      <div class="kpi-trend">♀ 66.3 · ♂ 61.8</div>
+    </div>
+  </div>
+
+  <div class="section" id="people">
+    <div class="section-header">
+      <div>
+        <h2>People</h2>
+        <p class="question">Who lives here — age, sex, ethnicity, religion</p>
+      </div>
+      <div class="tabs">
+        <button class="tab active" onclick="switchPeople(this, 'age')">Age</button>
+        <button class="tab" onclick="switchPeople(this, 'sex')">Sex</button>
+        <button class="tab" onclick="switchPeople(this, 'ethnic')">Ethnicity</button>
+        <button class="tab" onclick="switchPeople(this, 'religion')">Religion</button>
+      </div>
+    </div>
+    <div class="chart-container tall">
+      <canvas id="peopleChart"></canvas>
+    </div>
+    <button class="drill" onclick="toggleDetail('peopleDetail')">▼ Drill deeper: age, sex, and where people live</button>
+    <div class="detail-panel" id="peopleDetail">
+      <div class="detail-grid">
+        <div class="detail-item"><strong>36.3%</strong> Children 0–14 years</div>
+        <div class="detail-item"><strong>60.7%</strong> Working age 15–64</div>
+        <div class="detail-item"><strong>3.0%</strong> Age 65+</div>
+        <div class="detail-item"><strong>21 years</strong> Median age</div>
+        <div class="detail-item"><strong>49.7% / 50.3%</strong> Male / female</div>
+        <div class="detail-item"><strong>~30%</strong> Urban population</div>
+      </div>
+      <p class="note">Ethnicity and religion are from the 2019 census. They will not match a 2025 population total. No ethnic community is a majority on its own. Christianity is about 85% when the Christian groups are added.</p>
+    </div>
+  </div>
+
+  <div class="section" id="change">
+    <div class="section-header">
+      <div>
+        <h2>Change</h2>
+        <p class="question">Why the population is still growing, and why the UN birth rate and the KNBS registered rate do not match</p>
+      </div>
+      <div class="tabs">
+        <button class="tab active" onclick="switchChange(this, 'rates')">Births and deaths</button>
+        <button class="tab" onclick="switchChange(this, 'fertility')">Family size</button>
+        <button class="tab" onclick="switchChange(this, 'size')">Population size</button>
+      </div>
+    </div>
+    <div class="chart-container">
+      <canvas id="changeChart"></canvas>
+    </div>
+    <div class="callout">
+      <h3>Two birth numbers, both real</h3>
+      <p>UN-style estimates put the crude birth rate near <strong>27 per 1,000</strong> and fertility near <strong>3.2 children</strong> per woman. Kenya’s civil registration report for 2024 shows a registered crude birth rate of <strong>21.2</strong> and registered fertility of <strong>2.3</strong>. Registered events only count certificates that were filed. Estimates try to include births that were never registered. Use the registered rate when you mean recorded events.</p>
+    </div>
+    <button class="drill" onclick="toggleDetail('changeDetail')">▼ Drill deeper: why the population keeps rising</button>
+    <div class="detail-panel" id="changeDetail">
+      <div class="detail-grid">
+        <div class="detail-item"><strong>3.17</strong> UN fertility, 2024</div>
+        <div class="detail-item"><strong>2.3</strong> KNBS registered fertility, 2024</div>
+        <div class="detail-item"><strong>~1.52M</strong> Estimated births, 2024</div>
+        <div class="detail-item"><strong>~405k</strong> Estimated deaths, 2024</div>
+        <div class="detail-item"><strong>7.65 → 3.17</strong> Fertility, 1960 to 2024</div>
+        <div class="detail-item"><strong>~4.5 years</strong> Women live longer than men</div>
+      </div>
+      <p class="note">Families are smaller than in the 1960s, but births still far outnumber deaths, and so many people are still young that the population keeps rising. Sources: UN World Population Prospects 2024, KNBS Vital Statistics 2024.</p>
+    </div>
+  </div>
+
+  <div class="section" id="livelihoods">
+    <div class="section-header">
+      <div>
+        <h2>Livelihoods</h2>
+        <p class="question">Income, poverty, and how schooling changes the poverty rate</p>
+      </div>
+      <div class="tabs">
+        <button class="tab active" onclick="switchLiving(this, 'school')">Poverty by schooling</button>
+        <button class="tab" onclick="switchLiving(this, 'economy')">Where the economy sits</button>
+      </div>
+    </div>
+    <div class="chart-container">
+      <canvas id="livingChart"></canvas>
+    </div>
+    <button class="drill" onclick="toggleDetail('livingDetail')">▼ Drill deeper: income and inequality</button>
+    <div class="detail-panel" id="livingDetail">
+      <div class="detail-grid">
+        <div class="detail-item"><strong>$2,363</strong> GDP per person, 2025</div>
+        <div class="detail-item"><strong>~4.6%</strong> Real GDP growth</div>
+        <div class="detail-item"><strong>39.8%</strong> National poverty, 2022</div>
+        <div class="detail-item"><strong>58% / 18%</strong> Rural / urban poverty, 2022</div>
+        <div class="detail-item"><strong>~38.5</strong> Gini index</div>
+        <div class="detail-item"><strong>Lower-middle</strong> Income group</div>
+      </div>
+      <p class="note">Growth has been solid, but poverty is still concentrated among people with little schooling and in rural areas. Manufacturing is already counted inside industry. Sources: World Bank Poverty and Equity briefs, KNBS, WDI.</p>
+    </div>
+  </div>
+
+  <div class="section" id="learning">
+    <div class="section-header">
+      <div>
+        <h2>Learning</h2>
+        <p class="question">From literacy down to degrees, plus the 2025 KCSE snapshot</p>
+      </div>
+    </div>
+    <div class="chart-container">
+      <canvas id="learnChart"></canvas>
+    </div>
+    <div class="callout">
+      <h3>2025 KCSE snapshot</h3>
+      <p><strong>27%</strong> of candidates scored C+ or above — about 270,715 of 993,000 candidates. That grade is the usual direct university entry line. It is one exam year, not the share of all adults with a degree.</p>
+    </div>
+    <button class="drill" onclick="toggleDetail('learnDetail')">▼ Drill deeper: what the steps mean</button>
+    <div class="detail-panel" id="learnDetail">
+      <div class="detail-grid">
+        <div class="detail-item"><strong>82.9%</strong> Can read and write, ages 15+, 2022</div>
+        <div class="detail-item"><strong>78.8%</strong> Finished primary, ages 25+</div>
+        <div class="detail-item"><strong>37.6%</strong> Upper secondary or more, ages 25+</div>
+        <div class="detail-item"><strong>6.8%</strong> Bachelor’s or more, ages 25+</div>
+      </div>
+      <p class="note">Kenya gets children into school. It does not yet get most adults through secondary school, and only a small share hold a university degree. Sources: World Bank, UNESCO, KNBS.</p>
+    </div>
+  </div>
+
+  <div class="section" id="places">
+    <div class="section-header">
+      <div>
+        <h2>Places</h2>
+        <p class="question">Where people and jobs concentrate</p>
+      </div>
+    </div>
+    <p>Kenya has 47 counties, but people, jobs, and services bunch in a handful of cities. National density is about 99 people per km².</p>
+    <div class="detail-grid">
+      <div class="detail-item"><strong>Nairobi</strong> Capital. About 5 million in the wider metro area.</div>
+      <div class="detail-item"><strong>Mombasa</strong> Main port and second city.</div>
+      <div class="detail-item"><strong>Nakuru</strong> Rift Valley hub for farming and services.</div>
+      <div class="detail-item"><strong>Eldoret</strong> Highlands hub for education, grain, and trade.</div>
+      <div class="detail-item"><strong>Kisumu</strong> Lake Victoria port and main city of the west.</div>
+      <div class="detail-item"><strong>Garissa</strong> Service town for a large, dry northern region.</div>
+    </div>
+    <p class="note">City roles are a briefing, not a census of every town. Thika sits on the edge of the Nairobi economy. Malindi is a smaller coastal centre.</p>
+  </div>
+
+  <div class="section" id="notes">
+    <div class="section-header">
+      <div>
+        <h2>How to read this</h2>
+        <p class="question">Which source and year each number comes from</p>
+      </div>
+    </div>
+    <p>Treat this as a briefing, not a statistical release. Years differ because censuses, surveys, and projections are not updated on the same day.</p>
+    <table>
+      <thead>
+        <tr><th>Number</th><th>Figure</th><th>Source and year</th></tr>
+      </thead>
+      <tbody>
+        <tr><td>Population</td><td>57.5 million</td><td>UN World Population Prospects, 2025 estimate</td></tr>
+        <tr><td>Age shares, median age, sex ratio</td><td>36.3% / 60.7% / 3.0%, age 21, 98.9 males per 100 females</td><td>UN WPP 2024, around 2024–2025</td></tr>
+        <tr><td>Ethnicity and religion</td><td>Kikuyu 17.1% is the largest group; Protestant 33.4% is the largest faith group</td><td>2019 census, KNBS</td></tr>
+        <tr><td>Births, deaths, fertility</td><td>27.0 and 7.2 per 1,000; 3.17 children</td><td>UN WPP, 2024</td></tr>
+        <tr><td>Registered births and fertility</td><td>21.2 per 1,000; 2.3 children</td><td>KNBS vital statistics, 2024</td></tr>
+        <tr><td>Life expectancy</td><td>64.0 years; women 66.3, men 61.8</td><td>UN / World Bank, around 2025</td></tr>
+        <tr><td>GDP per person and growth</td><td>$2,363; about 4.6%</td><td>World Bank, 2025</td></tr>
+        <tr><td>National poverty</td><td>39.8%; rural 58%, urban 18%</td><td>World Bank / KNBS, 2022</td></tr>
+        <tr><td>Poverty by schooling</td><td>67.5% with no formal school, down to 13.4% with tertiary</td><td>World Bank, 2022</td></tr>
+        <tr><td>Literacy and attainment</td><td>82.9% literate; 6.8% with a bachelor’s or more</td><td>World Bank / UNESCO, around 2022</td></tr>
+        <tr><td>KCSE C+ or above</td><td>27%, about 270,715 of 993,000</td><td>2025 exam snapshot, not an adult attainment rate</td></tr>
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<footer>
+  Kenya Insights Dashboard · One HTML file. No install step.<br>
+  Figures are approximate latest estimates, mostly 2019–2025. For official use, consult KNBS, the UN, and the World Bank.<br>
+  <span class="source">Independent briefing. Not a government website.</span>
+</footer>
+
+<script>
+Chart.defaults.font.family = "'Inter', system-ui, sans-serif";
+Chart.defaults.color = "#374151";
+Chart.defaults.plugins.legend.labels.usePointStyle = true;
+
+const peopleSets = {
+  age: {
+    type: "doughnut",
+    data: {
+      labels: ["0–14 years", "15–64 years", "65+ years"],
+      datasets: [{ data: [36.3, 60.7, 3.0], backgroundColor: ["#BB0000", "#006600", "#C9A227"], borderWidth: 0, hoverOffset: 8 }]
+    },
+    options: { cutout: "65%", plugins: { tooltip: { callbacks: { label: (ctx) => ctx.label + ": " + ctx.raw + "%" } } } }
+  },
+  sex: {
+    type: "pie",
+    data: {
+      labels: ["Male", "Female"],
+      datasets: [{ data: [49.7, 50.3], backgroundColor: ["#3b82f6", "#ec4899"], borderWidth: 0 }]
+    },
+    options: { plugins: { tooltip: { callbacks: { label: (ctx) => ctx.label + ": " + ctx.raw + "%" } } } }
+  },
+  ethnic: {
+    type: "bar",
+    data: {
+      labels: ["Kikuyu", "Luhya", "Kalenjin", "Luo", "Kamba", "Somali", "Kisii", "Mijikenda", "Meru", "Maasai", "Turkana", "Other"],
+      datasets: [{ label: "Share of population, 2019 (%)", data: [17.1, 14.3, 13.4, 10.7, 9.8, 5.8, 5.7, 5.2, 4.2, 2.5, 2.1, 9.2], backgroundColor: "#006600", borderRadius: 6 }]
+    },
+    options: { indexAxis: "y", plugins: { legend: { display: false } }, scales: { x: { max: 20 } } }
+  },
+  religion: {
+    type: "bar",
+    data: {
+      labels: ["Protestant", "Catholic", "Evangelical", "Muslim", "African instituted", "Other Christian", "Other or none"],
+      datasets: [{ label: "Share, 2019 census (%)", data: [33.4, 20.6, 20.4, 10.9, 7.0, 4.1, 3.6], backgroundColor: "#BB0000", borderRadius: 6 }]
+    },
+    options: { indexAxis: "y", plugins: { legend: { display: false } }, scales: { x: { max: 40 } } }
+  }
+};
+
+const changeSets = {
+  rates: {
+    type: "line",
+    data: {
+      labels: ["2015", "2018", "2020", "2021", "2022", "2023", "2024"],
+      datasets: [
+        { label: "Births per 1,000 (UN)", data: [30.9, 28.9, 27.8, 27.6, 27.3, 27.1, 27.0], borderColor: "#BB0000", tension: 0.3 },
+        { label: "Deaths per 1,000", data: [7.1, 6.9, 7.9, 8.1, 7.2, 7.2, 7.2], borderColor: "#374151", tension: 0.3 }
+      ]
+    },
+    options: { plugins: { legend: { position: "top" } } }
+  },
+  fertility: {
+    type: "line",
+    data: {
+      labels: ["1960", "1980", "2000", "2010", "2015", "2020", "2024"],
+      datasets: [{ label: "Children per woman (UN)", data: [7.65, 7.53, 5.14, 4.45, 3.77, 3.36, 3.17], borderColor: "#BB0000", backgroundColor: "rgba(187,0,0,0.12)", fill: true, tension: 0.3, pointRadius: 4 }]
+    },
+    options: {}
+  },
+  size: {
+    type: "line",
+    data: {
+      labels: ["2000", "2005", "2010", "2015", "2020", "2024", "2025"],
+      datasets: [{ label: "Population (millions)", data: [30.6, 35.8, 41.6, 47.1, 52.2, 56.4, 57.5], borderColor: "#006600", backgroundColor: "rgba(0,102,0,0.1)", fill: true, tension: 0.3, pointRadius: 4 }]
+    },
+    options: {}
+  }
+};
+
+const livingSets = {
+  school: {
+    type: "bar",
+    data: {
+      labels: ["No formal school", "Primary", "Secondary", "Tertiary"],
+      datasets: [{ label: "Poverty rate, 2022 (%)", data: [67.5, 57.5, 38.5, 13.4], backgroundColor: ["#BB0000", "#dc2626", "#C9A227", "#006600"], borderRadius: 8 }]
+    },
+    options: { plugins: { legend: { display: false } }, scales: { y: { max: 100, title: { display: true, text: "Percent in poverty" } } } }
+  },
+  economy: {
+    type: "bar",
+    data: {
+      labels: ["Services", "Agriculture", "Industry", "Manufacturing (inside industry)"],
+      datasets: [{ label: "Approximate share of GDP (%)", data: [55, 23, 16, 7], backgroundColor: "#006600", borderRadius: 8 }]
+    },
+    options: { plugins: { legend: { display: false } }, scales: { y: { max: 70 } } }
+  }
+};
+
+function baseOptions(extra) {
+  return Object.assign({ responsive: true, maintainAspectRatio: false, plugins: { legend: { position: "bottom" } } }, extra || {});
+}
+
+function makeChart(id, spec) {
+  return new Chart(document.getElementById(id), {
+    type: spec.type,
+    data: spec.data,
+    options: baseOptions(spec.options)
+  });
+}
+
+const peopleChart = makeChart("peopleChart", peopleSets.age);
+const changeChart = makeChart("changeChart", changeSets.rates);
+const livingChart = makeChart("livingChart", livingSets.school);
+makeChart("learnChart", {
+  type: "bar",
+  data: {
+    labels: ["Can read and write (15+)", "Finished primary (25+)", "Upper secondary or more (25+)", "Bachelor's or more (25+)"],
+    datasets: [{ label: "Percent", data: [82.9, 78.8, 37.6, 6.8], backgroundColor: ["#006600", "#22c55e", "#BB0000", "#C9A227"], borderRadius: 8 }]
+  },
+  options: { indexAxis: "y", plugins: { legend: { display: false } }, scales: { x: { max: 100 } } }
+});
+
+function retarget(chart, spec) {
+  chart.config.type = spec.type;
+  chart.data = spec.data;
+  chart.options = baseOptions(spec.options);
+  chart.update();
+}
+
+function activate(button) {
+  button.parentElement.querySelectorAll(".tab").forEach((tab) => tab.classList.remove("active"));
+  button.classList.add("active");
+}
+
+function switchPeople(button, key) { activate(button); retarget(peopleChart, peopleSets[key]); }
+function switchChange(button, key) { activate(button); retarget(changeChart, changeSets[key]); }
+function switchLiving(button, key) { activate(button); retarget(livingChart, livingSets[key]); }
+
+function toggleDetail(id) {
+  document.getElementById(id).classList.toggle("active");
+}
+
+function showSection(id) {
+  document.getElementById(id).scrollIntoView({ behavior: "smooth", block: "start" });
+}
+</script>
+</body>
+</html>
